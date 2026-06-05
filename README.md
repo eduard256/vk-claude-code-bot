@@ -8,6 +8,12 @@
 
 Доступ только для одного человека. Бот реагирует только на твой VK user id, остальных молча игнорирует. `from_id` в Long Poll проставляет VK, подделать его нельзя.
 
+<p>
+  <img src="assets/screen-1.webp" width="32%">
+  <img src="assets/screen-2.webp" width="32%">
+  <img src="assets/screen-3.webp" width="32%">
+</p>
+
 ## Команды
 
 - `/start` — новая сессия. Показывает папки в `/home/user` и ждёт название рабочей папки.
