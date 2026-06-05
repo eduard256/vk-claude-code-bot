@@ -126,6 +126,16 @@ def kill_current_proc():
     state["proc"] = None
 
 
+# Дополнение к системному промпту — действует ТОЛЬКО для claude, запущенного ботом.
+# Запрещаем интерактивные уточняющие тулы: бот не умеет их рисовать в чате.
+BOT_SYSTEM_PROMPT = (
+    "Ты работаешь через VK-бота, общение идёт текстом в чате. "
+    "НИКОГДА не используй инструмент AskUserQuestion и любые интерактивные "
+    "уточнения — бот не может их отобразить. Если нужно что-то уточнить у "
+    "пользователя, спрашивай обычным текстом в ответе и жди следующего сообщения."
+)
+
+
 def build_cmd(user_text):
     """Собирает аргументы запуска claude. С --resume, если сессия уже есть."""
     cmd = [
@@ -134,6 +144,8 @@ def build_cmd(user_text):
         "--verbose",                         # обязателен для stream-json
         "--dangerously-skip-permissions",
         "--model", "opus",
+        "--append-system-prompt", BOT_SYSTEM_PROMPT,   # доп. к системному промпту (только из-под бота)
+        "--disallowedTools", "AskUserQuestion",         # технически отключаем интерактивный тул
     ]
     if state["session_id"]:
         cmd += ["--resume", state["session_id"]]
