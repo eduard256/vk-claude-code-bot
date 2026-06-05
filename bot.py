@@ -39,10 +39,11 @@ _env = load_env(os.path.join(os.path.dirname(__file__), ".env"))
 TOKEN = _env["VK_TOKEN"]
 GROUP_ID = int(_env["VK_GROUP_ID"])
 ALLOWED_USER_ID = int(_env["ALLOWED_USER_ID"])
+# корень, от которого показываем папки при /start и считаем относительные пути
+HOME = _env.get("BASE_DIR", "/home/user").rstrip("/") or "/"
 
 API = "https://api.vk.com/method/"
 V = "5.199"                       # актуальная стабильная версия API
-HOME = "/home/user"              # корень, от которого показываем папки при /start
 MSG_LIMIT = 4000                 # запас от лимита VK в 4096 символов
 
 session = requests.Session()
@@ -305,7 +306,7 @@ def handle_message(peer_id, text):
             kill_current_proc()
             state.update(phase="await_folder", cwd=None, session_id=None)
         send(peer_id, "🆕 Новая сессия.\n\n" + list_folders())
-        send(peer_id, "Напишите название папки (например: meet) или полный путь, начинающийся с /home")
+        send(peer_id, "Напишите название папки (например: meet) или полный путь (с /)")
         return
 
     # --- /stop: остановить текущий ответ ИИ ---
@@ -327,8 +328,8 @@ def handle_message(peer_id, text):
 
     # --- ожидаем путь к рабочей папке ---
     if state["phase"] == "await_folder":
-        # путь, начинающийся с /home — считаем полным; иначе относительный от /home/user
-        path = text if text.startswith("/home") else os.path.join(HOME, text)
+        # абсолютный путь (с /) принимаем как есть; иначе относительный от BASE_DIR
+        path = text if text.startswith("/") else os.path.join(HOME, text)
         if os.path.isdir(path):
             with state_lock:
                 state.update(phase="ready", cwd=path)
