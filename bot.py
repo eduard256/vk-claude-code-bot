@@ -227,6 +227,62 @@ def list_folders():
     return f"Папки в {HOME}:\n{listing}"
 
 
+def _skill_description(skill_dir):
+    """Достаёт строку description из frontmatter SKILL.md, если есть."""
+    skill_md = os.path.join(skill_dir, "SKILL.md")
+    if not os.path.isfile(skill_md):
+        return ""
+    try:
+        with open(skill_md, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("description:"):
+                    return line.split(":", 1)[1].strip()
+    except OSError:
+        pass
+    return ""
+
+
+def _collect_skills(skills_root):
+    """Возвращает список (имя, описание) скиллов из каталога skills_root."""
+    result = []
+    if not os.path.isdir(skills_root):
+        return result
+    for name in sorted(os.listdir(skills_root)):
+        path = os.path.join(skills_root, name)
+        if os.path.isdir(path):
+            result.append((name, _skill_description(path)))
+    return result
+
+
+def list_skills():
+    """Текст со списком глобальных и проектных (из текущей cwd) скиллов."""
+    blocks = []
+
+    glob_root = os.path.expanduser("~/.claude/skills")
+    glob = _collect_skills(glob_root)
+    if glob:
+        lines = "\n".join(
+            f"  • /{name}" + (f" — {desc[:80]}" if desc else "")
+            for name, desc in glob
+        )
+        blocks.append(f"🌐 Глобальные скиллы:\n{lines}")
+
+    # проектные — только если выбрана рабочая папка
+    if state.get("cwd"):
+        proj_root = os.path.join(state["cwd"], ".claude", "skills")
+        proj = _collect_skills(proj_root)
+        if proj:
+            lines = "\n".join(
+                f"  • /{name}" + (f" — {desc[:80]}" if desc else "")
+                for name, desc in proj
+            )
+            blocks.append(f"📁 Скиллы проекта ({state['cwd']}):\n{lines}")
+
+    if not blocks:
+        return "Скиллы не найдены."
+    return "\n\n".join(blocks)
+
+
 def handle_message(peer_id, text):
     """Главный роутер: команды и обычные сообщения."""
     text = text.strip()
@@ -250,6 +306,11 @@ def handle_message(peer_id, text):
                 send(peer_id, "⏹ Остановлено.")
             else:
                 send(peer_id, "Сейчас ничего не выполняется.")
+        return
+
+    # --- /skills: показать доступные скиллы ---
+    if text == "/skills":
+        send(peer_id, list_skills())
         return
 
     # --- ожидаем путь к рабочей папке ---
